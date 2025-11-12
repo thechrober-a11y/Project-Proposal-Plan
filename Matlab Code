@@ -1,1 +1,71 @@
 
+%% Load data from workspace
+T = datadate;  
+
+%% === Data Cleaning & Preparation ===
+
+% 1. Standardize Date column
+T.Date = datetime(T.Date, 'InputFormat', 'yyyy-MM-dd');
+
+% 2. Remove duplicates
+T = unique(T);
+
+% 3. Handle missing values
+T = rmmissing(T);
+
+% 4. Convert columns to proper types
+T.Status   = categorical(T.Status);
+T.AQIValue = double(T.AQIValue);
+
+% 5. Remove invalid AQI values (<0 or >500)
+T = T(T.AQIValue >= 0 & T.AQIValue <= 500, :);
+
+% 6. Document cleaning summary
+fprintf('Cleaned dataset: %d rows, %d columns\n', height(T), width(T));
+disp('Variable names:');
+disp(T.Properties.VariableNames);
+
+%% === Statistical Analysis ===
+
+fprintf('\n--- Descriptive Statistics for AQIValue ---\n');
+fprintf('Count: %d\n', sum(~isnan(T.AQIValue)));
+fprintf('Mean: %.2f\n', mean(T.AQIValue));
+fprintf('Median: %.2f\n', median(T.AQIValue));
+fprintf('Std Dev: %.2f\n', std(T.AQIValue));
+fprintf('Min: %.2f\n', min(T.AQIValue));
+fprintf('Max: %.2f\n', max(T.AQIValue));
+fprintf('Sum: %.2f\n', sum(T.AQIValue));
+
+% Grouped statistics by Status
+statsByStatus = groupsummary(T, "Status", "mean", "AQIValue");
+disp('Average AQI by Status:');
+disp(statsByStatus);
+
+%% === Visualization ===
+
+% 1. Histogram of AQI Values
+figure;
+histogram(T.AQIValue, 20);
+title('Histogram of AQI Values');
+xlabel('AQI Value'); ylabel('Frequency');
+grid on;
+
+% 2. Bar chart of average AQI by Status
+figure;
+bar(statsByStatus.Status, statsByStatus.mean_AQIValue);
+title('Average AQI by Status');
+xlabel('Air Quality Status'); ylabel('Mean AQI Value');
+grid on;
+
+% 3. Pie chart of Status distribution
+figure;
+pie(countcats(T.Status), categories(T.Status));
+title('Distribution of Air Quality Status');
+
+% 4. Line chart of AQI over time (example: global daily mean)
+dailyMean = groupsummary(T, "Date", "mean", "AQIValue");
+figure;
+plot(dailyMean.Date, dailyMean.mean_AQIValue, '-o');
+title('Daily Mean AQI Trend');
+xlabel('Date'); ylabel('Mean AQI Value');
+grid on;
